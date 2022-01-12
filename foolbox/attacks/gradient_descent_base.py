@@ -210,3 +210,55 @@ class LinfBaseGradientDescent(BaseGradientDescent):
 
     def project(self, x: ep.Tensor, x0: ep.Tensor, epsilon: float) -> ep.Tensor:
         return x0 + ep.clip(x - x0, -epsilon, epsilon)
+
+
+class LinfBaseGradientDescentMCSampling(LinfBaseGradientDescent):
+    def run(
+        self,
+        model: Model,
+        inputs: T,
+        criterion: Union[Misclassification, TargetedMisclassification, T],
+        *,
+        epsilon: float,
+        mc: int,
+        **kwargs: Any,
+    ) -> T:
+        raise_if_kwargs(kwargs)
+        x0, restore_type = ep.astensor_(inputs)
+        criterion_ = get_criterion(criterion)
+        del inputs, criterion, kwargs
+
+        # perform a gradient ascent (targeted attack) or descent (untargeted attack)
+        if isinstance(criterion_, Misclassification):
+            gradient_step_sign = 1.0
+            classes = criterion_.labels
+        elif hasattr(criterion_, "target_classes"):
+            gradient_step_sign = -1.0
+            classes = criterion_.target_classes  # type: ignore
+        else:
+            raise ValueError("unsupported criterion")
+
+        loss_fn = self.get_loss_fn(model, classes)
+
+        if self.abs_stepsize is None:
+            stepsize = self.rel_stepsize * epsilon
+        else:
+            stepsize = self.abs_stepsize
+
+        if self.random_start:
+            x = self.get_random_start(x0, epsilon)
+            x = ep.clip(x, *model.bounds)
+        else:
+            x = x0
+
+        for _ in range(self.steps):
+            gradient_sum = 0.
+            for _ in range(mc):
+                _, gradients = self.value_and_grad(loss_fn, x)
+                gradient_sum += gradients
+            gradients = self.normalize(gradient_sum, x=x, bounds=model.bounds)
+            x = x + gradient_step_sign * stepsize * gradients
+            x = self.project(x, x0, epsilon)
+            x = ep.clip(x, *model.bounds)
+
+        return restore_type(x)

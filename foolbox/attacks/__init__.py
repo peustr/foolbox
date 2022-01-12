@@ -8,6 +8,7 @@ from .projected_gradient_descent import (  # noqa: F401
     L1ProjectedGradientDescentAttack,
     L2ProjectedGradientDescentAttack,
     LinfProjectedGradientDescentAttack,
+    LinfProjectedGradientDescentAttackMCSampling,
 )
 from .basic_iterative_method import (  # noqa: F401
     L1BasicIterativeAttack,
@@ -18,6 +19,7 @@ from .fast_gradient_method import (  # noqa: F401
     L1FastGradientAttack,
     L2FastGradientAttack,
     LinfFastGradientAttack,
+    LinfFastGradientAttackMCSampling,
 )
 from .additive_noise import (  # noqa: F401
     L2AdditiveGaussianNoiseAttack,
@@ -86,3 +88,5 @@ L1PGD = L1ProjectedGradientDescentAttack
 L2PGD = L2ProjectedGradientDescentAttack
 LinfPGD = LinfProjectedGradientDescentAttack
 PGD = LinfPGD
+FGSMMC = LinfFastGradientAttackMCSampling
+PGDMC = LinfProjectedGradientDescentAttackMCSampling
